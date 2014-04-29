@@ -4,13 +4,13 @@ require 'oj'
 require 'multi_json'
 require 'htmlentities'
 
-Script :domain_availability, using: %w{http}, includes: [Commands] do
+Script :domain_availability, using: %w{http commands} do
   Author "Ole Bergmann <ole@ole.im>"
   Version "0.1"
   Description "Search for domain availability"
 
   # Script constants.
-  API_KEY   = "" # FreeDomainAPI.com API Key
+  API_KEY   = "YOUR API KEY HERE" # FreeDomainAPI.com API Key
   LookupURI = "http://freedomainapi.com/?key=#{API_KEY}&domain=%s"
   DomainTaken = "\x034Taken\x0F"
   DomainAvailable = "\x033Available\x0F"
@@ -18,11 +18,10 @@ Script :domain_availability, using: %w{http}, includes: [Commands] do
   # Register the .taken command.
   command %w{taken} do |user, channel, args|
     unless args
-      return channel.say format "Usage:\x0F .taken <domain>"
+      break channel.say format "Usage:\x0F .taken <domain>"
     end
 
     lookup args do |domain, available|
-
       channel.say format "#{domain}\x0F - #{available ? DomainAvailable : DomainTaken}"
     end    
   end
@@ -36,13 +35,11 @@ Script :domain_availability, using: %w{http}, includes: [Commands] do
 
     context.success do
       begin
-
         if context.response['status'] == 'success'
           yield context.response['domain'], context.response['available']
         else
-          return yield nil
+          break domain, "service timed out"
         end
-
       rescue Exception => e
         yield e.message, e.class.to_s
         p e.backtrace
@@ -50,7 +47,7 @@ Script :domain_availability, using: %w{http}, includes: [Commands] do
     end
 
     context.error do
-      yield nil
+      break nil
     end
   end
   
