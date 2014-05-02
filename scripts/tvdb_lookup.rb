@@ -27,7 +27,7 @@ Script :tvdb_lookup, uses: %w{http}, includes: [Commands] do
   def loaded
 
     # Initialize the shows array for caching search results
-    cache[:shows] = []
+    cache[:shows] ||= []
 
     # Set the timezone
     Time.zone = APITimeZone
