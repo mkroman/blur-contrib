@@ -48,9 +48,11 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
+  activesupport
   blur!
   em-http-request
   htmlentities
   multi_json
+  nokogiri
   oj
   yahoo_weatherman
