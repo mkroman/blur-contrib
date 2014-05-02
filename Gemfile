@@ -1,5 +1,8 @@
 source "https://rubygems.org"
 
+# Use blur straight from master branch.
+gem "blur", git: "git://github.com/mkroman/blur.git"
+
 # Required by the http extension.
 gem "em-http-request"
 

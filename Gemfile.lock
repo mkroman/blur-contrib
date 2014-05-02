@@ -1,0 +1,56 @@
+GIT
+  remote: git://github.com/mkroman/blur.git
+  revision: 96df3416efd3f09cc652abb573e41d30dc18b6de
+  specs:
+    blur (1.8.4)
+      eventmachine (> 0.12)
+      majic (>= 0.2)
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    activesupport (4.1.0)
+      i18n (~> 0.6, >= 0.6.9)
+      json (~> 1.7, >= 1.7.7)
+      minitest (~> 5.1)
+      thread_safe (~> 0.1)
+      tzinfo (~> 1.1)
+    addressable (2.3.6)
+    cookiejar (0.3.2)
+    em-http-request (1.1.2)
+      addressable (>= 2.3.4)
+      cookiejar
+      em-socksify (>= 0.3)
+      eventmachine (>= 1.0.3)
+      http_parser.rb (>= 0.6.0)
+    em-socksify (0.3.0)
+      eventmachine (>= 1.0.0.beta.4)
+    eventmachine (1.0.3)
+    htmlentities (4.3.1)
+    http_parser.rb (0.6.0)
+    i18n (0.6.9)
+    json (1.8.1)
+    majic (0.4.3)
+      activesupport
+    mini_portile (0.5.3)
+    minitest (5.3.3)
+    multi_json (1.9.3)
+    nokogiri (1.6.1)
+      mini_portile (~> 0.5.0)
+    oj (2.9.0)
+    thread_safe (0.3.3)
+    tzinfo (1.1.0)
+      thread_safe (~> 0.1)
+    yahoo_weatherman (2.0.0)
+      nokogiri
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  blur!
+  em-http-request
+  htmlentities
+  multi_json
+  oj
+  yahoo_weatherman
