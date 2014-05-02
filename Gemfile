@@ -15,3 +15,7 @@ gem "yahoo_weatherman"
 
 # Required by the google search script.
 gem "htmlentities"
+
+# Required by the tvdb lookup script
+gem "activesupport"
+gem "nokogiri"
