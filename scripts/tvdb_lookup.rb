@@ -233,10 +233,6 @@ Script :tvdb_lookup, uses: %w{http}, includes: [Commands] do
     Time.zone.parse(episode.css('FirstAired').first.text + " #{clock}").getlocal
   end
 
-  def get uri
-    Nokogiri::XML(open(uri))
-  end
-
   def format_episode episode
 
     aired = episode[:airtime].strftime(DateFormat)
