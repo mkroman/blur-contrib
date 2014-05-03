@@ -33,9 +33,9 @@ Script :tvdb_lookup, uses: %w{http}, includes: [Commands] do
     Time.zone = APITimeZone
   end
 
-  command %w{next episode tvnext} do |user, channel, args|
+  command %w{next episode tvnext series} do |user, channel, args|
     unless args
-      return channel.say format "Usage:\x0F .tv <query>"
+      return channel.say format "Usage:\x0F .next <query>"
     end
 
     search args do |result|
