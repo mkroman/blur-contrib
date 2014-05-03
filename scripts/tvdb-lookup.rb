@@ -33,7 +33,7 @@ Script :tvdb_lookup, uses: %w{http}, includes: [Commands] do
     Time.zone = APITimeZone
   end
 
-  command %w{tv episode} do |user, channel, args|
+  command %w{next episode tvnext} do |user, channel, args|
     unless args
       return channel.say format "Usage:\x0F .tv <query>"
     end
@@ -46,20 +46,20 @@ Script :tvdb_lookup, uses: %w{http}, includes: [Commands] do
 
           if series
 
-            response = "#{ series[:name] }\x0F "
+            response = "#{ series[:name] }\x0F - "
 
             if series[:last_episode]
 
-              response += "- \x0310Latest:\x0F %s " % format_episode(series[:last_episode])
+              response += "\x0310Latest:\x0F %s " % format_episode(series[:last_episode])
             end
 
             if series[:next_episode]
 
-              response += "- \x0310Next:\x0F %s " % format_episode(series[:next_episode])
+              response += "\x0310Next:\x0F %s " % format_episode(series[:next_episode])
             end
 
             if series[:status]
-              response += "- \x0310Status:\x0F #{ series[:status] }"
+              response += "\x0310Status:\x0F #{ series[:status] }"
             end
 
             channel.say format response
