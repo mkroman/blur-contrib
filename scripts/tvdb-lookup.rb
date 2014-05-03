@@ -50,16 +50,16 @@ Script :tvdb_lookup, uses: %w{http}, includes: [Commands] do
 
             if series[:last_episode]
 
-              response += "- \x02Latest\x02: %s " % format_episode(series[:last_episode])
+              response += "- \x0310Latest:\x0F %s " % format_episode(series[:last_episode])
             end
 
             if series[:next_episode]
 
-              response += "- \x02Next\x02: %s " % format_episode(series[:next_episode])
+              response += "- \x0310Next:\x0F %s " % format_episode(series[:next_episode])
             end
 
             if series[:status]
-              response += "- \x02Status\x02: \x0310#{ series[:status] }\x0F"
+              response += "- \x0310Status:\x0F #{ series[:status] }"
             end
 
             channel.say format response
@@ -237,7 +237,7 @@ Script :tvdb_lookup, uses: %w{http}, includes: [Commands] do
 
     aired = episode[:airtime].strftime(DateFormat)
 
-    %{#{episode[:season].rjust(2, '0')}x#{episode[:episode].rjust(2, '0')} @ \x0310#{aired}\x0F}
+    %{\x0310(\x0F#{episode[:season].rjust(2, '0')}x#{episode[:episode].rjust(2, '0')}\x0310)\x0F \x02#{aired}\x02}
   end
   
   def format message
