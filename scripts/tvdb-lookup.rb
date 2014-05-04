@@ -17,6 +17,7 @@ Script :tvdb_lookup, uses: %w{http}, includes: [Commands] do
 
   # String representation for how the air dates should be formatted
   DateFormat  = '%d/%m/%Y'
+  HourFormat  = '%l %P'
 
   # Hardcoded path for API: http://thetvdb.com/wiki/index.php?title=API:mirrors.xml
   MirrorPath  = 'http://thetvdb.com/'
@@ -247,7 +248,7 @@ Script :tvdb_lookup, uses: %w{http}, includes: [Commands] do
     end
 
     if future
-      s += " at #{timestamp.strftime('%H:%M')}"
+      s += " at #{timestamp.strftime(HourFormat)}"
     end
     [s, future]
   end
