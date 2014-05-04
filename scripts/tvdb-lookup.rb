@@ -16,7 +16,7 @@ Script :tvdb_lookup, uses: %w{http}, includes: [Commands] do
   APITimeZone = 'Pacific Time (US & Canada)' # TimeZone for the TVDB API
 
   # String representation for how the air dates should be formatted
-  DateFormat  = '%d/%m/%Y %H:%M'
+  DateFormat  = '%d/%m/%Y'
 
   # Hardcoded path for API: http://thetvdb.com/wiki/index.php?title=API:mirrors.xml
   MirrorPath  = 'http://thetvdb.com/'
@@ -25,7 +25,6 @@ Script :tvdb_lookup, uses: %w{http}, includes: [Commands] do
   LookupURI   = "#{MirrorPath}api/#{APIKey}/series/%s/all/#{APILanguage}.xml"
 
   def loaded
-
     # Initialize the shows array for caching search results
     cache[:shows] ||= []
 
@@ -41,21 +40,17 @@ Script :tvdb_lookup, uses: %w{http}, includes: [Commands] do
     search args do |result|
 
       if result
-
         lookup result do |series|
 
           if series
-
             response = "#{ series[:name] }\x0F - "
 
             if series[:last_episode]
-
-              response += "\x0310Latest:\x0F %s " % format_episode(series[:last_episode])
+              response += "\x0310Latest %s " % format_episode(series[:last_episode])
             end
 
             if series[:next_episode]
-
-              response += "\x0310Next:\x0F %s " % format_episode(series[:next_episode])
+              response += "\x0310Next %s " % format_episode(series[:next_episode])
             end
 
             if series[:status]
@@ -76,11 +71,11 @@ Script :tvdb_lookup, uses: %w{http}, includes: [Commands] do
   end
   
   def search_cache query
-    cache[:shows].select {|s| s[:name].downcase.include? query.downcase }.first
+    cache[:shows].find {|s| s[:name].downcase.include? query.downcase }
   end
 
   def exists? id
-    cache[:shows].select {|s| s[:id] == id}.first
+    cache[:shows].find {|s| s[:id] == id}
   end
   
   def search query
@@ -96,7 +91,6 @@ Script :tvdb_lookup, uses: %w{http}, includes: [Commands] do
     else
 
       search_uri = SearchURI % URI.escape(query)
-
       context = http.get search_uri
 
       context.success do 
@@ -229,15 +223,44 @@ Script :tvdb_lookup, uses: %w{http}, includes: [Commands] do
     }
   end
 
+  def time_since timestamp
+    now = Time.zone.now
+    difference = now - timestamp
+    future = difference < 0
+    difference = difference.abs
+
+    day    = 24 * 60 * 60
+    week   = 7  * day
+
+    s = ""
+
+    if timestamp.to_date == now.tomorrow.to_date
+      s = "tomorrow"
+    elsif timestamp.to_date == now.yesterday.to_date
+      s = "yesterday"
+    elsif timestamp.to_date == now.to_date
+      s = "today"
+    elsif difference > day and difference < week
+      s = (future ? "" : "last ") + timestamp.strftime('%A').downcase
+    else
+      s = timestamp.strftime(DateFormat)
+    end
+
+    if future
+      s += " at #{timestamp.strftime('%H:%M')}"
+    end
+    [s, future]
+  end
+
   def airtime episode, clock
     Time.zone.parse(episode.css('FirstAired').first.text + " #{clock}").getlocal
   end
 
   def format_episode episode
 
-    aired = episode[:airtime].strftime(DateFormat)
+    aired, future = time_since episode[:airtime]
 
-    %{\x0310(\x0F#{episode[:season].rjust(2, '0')}x#{episode[:episode].rjust(2, '0')}\x0310)\x0F \x02#{aired}\x02}
+    %{\x0310(\x0F#{episode[:season].rjust(2, '0')}x#{episode[:episode].rjust(2, '0')}\x0310):\x0F #{episode[:name]}, \x0310#{future ? 'airs' : 'aired'}\x0F #{aired}}
   end
   
   def format message
