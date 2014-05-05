@@ -17,7 +17,7 @@ Script :tvdb_lookup, uses: %w{http}, includes: [Commands] do
 
   # String representation for how the air dates should be formatted
   DateFormat  = '%d/%m/%Y'
-  HourFormat  = '%l %P'
+  HourFormat  = '%-l %P'
 
   # Hardcoded path for API: http://thetvdb.com/wiki/index.php?title=API:mirrors.xml
   MirrorPath  = 'http://thetvdb.com/'
@@ -225,7 +225,8 @@ Script :tvdb_lookup, uses: %w{http}, includes: [Commands] do
   end
 
   def time_since timestamp
-    now = Time.zone.now
+    # get local time
+    now = Time.now
     difference = now - timestamp
     future = difference < 0
     difference = difference.abs
