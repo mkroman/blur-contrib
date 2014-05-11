@@ -13,7 +13,7 @@ Script :tvdb_lookup, uses: %w{http}, includes: [Commands] do
   # Script constants.
   APIKey      = '950C33BEABF4A965'           # API Key for TVDBApi
   APILanguage = 'en'                         # 2 char language code for API
-  APITimeZone = 'Pacific Time (US & Canada)' # TimeZone for the TVDB API
+  APITimeZone = 'Eastern Time (US & Canada)' # TimeZone for the TVDB API
 
   # String representation for how the air dates should be formatted
   DateFormat  = '%d/%m/%Y'
