@@ -1,19 +1,19 @@
 # encoding: utf-8
 
-require 'active_support/time'
+require 'time'
 require 'htmlentities'
 require 'open-uri'
 require 'nokogiri'
 
 Script :tvdb_lookup, uses: %w{http}, includes: [Commands] do
   Author "Ole Bergmann <ole@ole.im>"
-  Version "0.2"
+  Version "0.3"
   Description "Provides a method to search TVDB for a Show's previous and next episodes"
 
   # Script constants.
   APIKey      = '950C33BEABF4A965'           # API Key for TVDBApi
   APILanguage = 'en'                         # 2 char language code for API
-  APITimeZone = 'Eastern Time (US & Canada)' # TimeZone for the TVDB API
+  APITimeZone = 'EDT'                        # TimeZone for the TVDB API
 
   # String representation for how the air dates should be formatted
   DateFormat  = '%d/%m/%Y'
@@ -28,9 +28,6 @@ Script :tvdb_lookup, uses: %w{http}, includes: [Commands] do
   def loaded
     # Initialize the shows array for caching search results
     cache[:shows] ||= []
-
-    # Set the timezone
-    Time.zone = APITimeZone
   end
 
   command %w{next episode tvnext series} do |user, channel, args|
@@ -156,7 +153,7 @@ Script :tvdb_lookup, uses: %w{http}, includes: [Commands] do
         clock  = xml.css('Data Series Airs_Time').first.text
 
         # Get the current time in the API TimeZone
-        now    = Time.zone.now
+        now    = Time.now.utc + Time.zone_offset(APITimeZone)
 
         last_episode = nil
         next_episode = nil
@@ -231,16 +228,18 @@ Script :tvdb_lookup, uses: %w{http}, includes: [Commands] do
     future = difference < 0
     difference = difference.abs
 
+    today = now.to_date
+
     day    = 24 * 60 * 60
     week   = 7  * day
 
     s = ""
 
-    if timestamp.to_date == now.tomorrow.to_date
+    if timestamp.to_date == today.next_day
       s = "tomorrow"
-    elsif timestamp.to_date == now.yesterday.to_date
+    elsif timestamp.to_date == today.prev_day
       s = "yesterday"
-    elsif timestamp.to_date == now.to_date
+    elsif timestamp.to_date == today
       s = "today"
     elsif difference > day and difference < week
       s = (future ? "" : "last ") + timestamp.strftime('%A').downcase
@@ -255,7 +254,7 @@ Script :tvdb_lookup, uses: %w{http}, includes: [Commands] do
   end
 
   def airtime episode, clock
-    Time.zone.parse(episode.css('FirstAired').first.text + " #{clock}").getlocal
+    Time.parse(episode.css('FirstAired').first.text + " #{clock} #{APITimeZone}").getlocal
   end
 
   def format_episode episode

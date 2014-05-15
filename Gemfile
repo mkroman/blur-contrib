@@ -17,5 +17,4 @@ gem "yahoo_weatherman"
 gem "htmlentities"
 
 # Required by the tvdb lookup script
-gem "activesupport"
 gem "nokogiri"
