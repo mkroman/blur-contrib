@@ -228,16 +228,18 @@ Script :tvdb_lookup, uses: %w{http}, includes: [Commands] do
     future = difference < 0
     difference = difference.abs
 
+    today = now.to_date
+
     day    = 24 * 60 * 60
     week   = 7  * day
 
     s = ""
 
-    if timestamp.to_date == now.to_date.next_day
+    if timestamp.to_date == today.next_day
       s = "tomorrow"
-    elsif timestamp.to_date == now.to_date.prev_day
+    elsif timestamp.to_date == today.prev_day
       s = "yesterday"
-    elsif timestamp.to_date == now.to_date
+    elsif timestamp.to_date == today
       s = "today"
     elsif difference > day and difference < week
       s = (future ? "" : "last ") + timestamp.strftime('%A').downcase
