@@ -168,12 +168,13 @@ Script :tvdb_lookup, uses: %w{http}, includes: [Commands] do
             aired = airtime episode, clock
 
             # just continue overriding while we havent got the latest episode
-            if aired < now
+            if aired and aired < now
                 last_episode = episode
+                next
             end
 
             # no point in looking for next episode if the series have ended
-            if status != 'Ended' and aired >= now
+            if status != 'Ended' and (not aired or aired >= now)
                 next_episode = episode
 
                 # break out of loop if we find the next episode
@@ -222,6 +223,7 @@ Script :tvdb_lookup, uses: %w{http}, includes: [Commands] do
   end
 
   def time_since timestamp
+    return [nil, nil] unless timestamp
     # get local time
     now = Time.now
     difference = now - timestamp
@@ -254,14 +256,16 @@ Script :tvdb_lookup, uses: %w{http}, includes: [Commands] do
   end
 
   def airtime episode, clock
-    Time.parse(episode.css('FirstAired').first.text + " #{clock} #{APITimeZone}").getlocal
+    aired = episode.css('FirstAired').first.text
+    return if aired == ""
+    Time.parse(aired + " #{clock} #{APITimeZone}").getlocal
   end
 
   def format_episode episode
 
     aired, future = time_since episode[:airtime]
 
-    %{\x0310(\x0F#{episode[:season].rjust(2, '0')}x#{episode[:episode].rjust(2, '0')}\x0310):\x0F #{episode[:name]}, \x0310#{future ? 'airs' : 'aired'}\x0F #{aired}}
+    "\x0310(\x0F#{episode[:season].rjust(2, '0')}x#{episode[:episode].rjust(2, '0')}\x0310):\x0F #{episode[:name]}" + (aired ? ", \x0310#{future ? 'airs' : 'aired'}\x0F #{aired}" : "")
   end
   
   def format message
