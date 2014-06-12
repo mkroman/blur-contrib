@@ -246,8 +246,8 @@ Script :dota_match, uses: %w{http}, includes: [Commands] do
     end
   end
 
-  def user_rename channel, user, nick
-    rename user.nick, nick if exists? user.nick
+  def user_rename channel, user, old_nick, new_nick
+    rename old_nick, new_nick if exists? old_nick
   end
 
   def details account_id, match_id
