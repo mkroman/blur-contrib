@@ -14,7 +14,7 @@ Script :dota_match, uses: %w{http}, includes: [Commands] do
   APIKey     = ""
 
   # Regular expression for matching steam id's
-  SteamRe    = /STEAM_\d{1}:(\d{1}):(\d{4,})/
+  SteamRe    = /STEAM_\d:(\d):(\d{4,})/
 
   # Reference: http://dev.dota2.com/showthread.php?t=58317
   BaseURI    = "https://api.steampowered.com/IDOTA2Match_570/"
@@ -198,7 +198,7 @@ Script :dota_match, uses: %w{http}, includes: [Commands] do
           end
         end
       else
-        return channel.say format "Unknown User:\x0F use .dota set <steam_id> to set your Steam ID"
+        channel.say format "Unknown User:\x0F use .dota set <steam_id> to set your Steam ID"
       end
 
     else
@@ -240,10 +240,14 @@ Script :dota_match, uses: %w{http}, includes: [Commands] do
             end
           end
         else
-          return channel.say format "Unknown User:\x0F #{nick}"
+          channel.say format "Unknown User:\x0F #{nick}"
         end
       end
     end
+  end
+
+  def user_rename channel, user, old_nick, new_nick
+    rename old_nick, new_nick if exists? old_nick
   end
 
   def details account_id, match_id
@@ -349,6 +353,10 @@ Script :dota_match, uses: %w{http}, includes: [Commands] do
     context.error do
       yield nil
     end
+  end
+
+  def rename nick, new_nick
+    cache[:users][new_nick] = cache[:users].delete(nick)
   end
 
   def exists? nick
