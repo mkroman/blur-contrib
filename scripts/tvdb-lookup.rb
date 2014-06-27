@@ -51,6 +51,10 @@ Script :tvdb_lookup, uses: %w{http}, includes: [Commands] do
               response += "\x0310Next %s " % format_episode(series[:next_episode])
             end
 
+            if series[:network]
+              response += "\x0310Network:\x0F #{ series[:network] } "
+            end
+
             if series[:status]
               response += "\x0310Status:\x0F #{ series[:status] }"
             end
@@ -78,12 +82,12 @@ Script :tvdb_lookup, uses: %w{http}, includes: [Commands] do
   
   def search query
 
-    cached = search_cache query
+    show = search_cache query
 
-    # if we found the show in the cache, we just return the id
-    if cached
+    # if we found the show in the cache, we just yield that here
+    if show
 
-      yield cached[:id]
+      yield show
 
     # otherwise look it up on TVDBApi
     else
@@ -102,21 +106,22 @@ Script :tvdb_lookup, uses: %w{http}, includes: [Commands] do
             # get the first result in the list
             series = results.first
 
-            # name is only used for caching purposes here
+            # information saved for caching purposes
             name = series.css('SeriesName').first.text
             id   = series.css('seriesid').first.text
+            network = series.css('Network').first.text
+
+            show = {:id => id, :name => name, :network => network}
 
             # we gain nothing from caching multiple instances of the same show
             # and searching the cache might not be as reliable as searching tvdb
             # so we need to make sure the show doesnt exist in the cache
             unless exists? id
               # cache the result
-              cache[:shows] << {:id => id, :name => name}
+              cache[:shows] << show
             end
 
-            # we only need the id for search results
-            # thus we just return the id
-            yield id
+            yield show
 
           else
             yield nil
@@ -136,8 +141,8 @@ Script :tvdb_lookup, uses: %w{http}, includes: [Commands] do
     end
   end
 
-  def lookup id
-    lookup_uri = LookupURI % id
+  def lookup show
+    lookup_uri = LookupURI % show[:id]
 
     context = http.get lookup_uri
 
@@ -187,6 +192,7 @@ Script :tvdb_lookup, uses: %w{http}, includes: [Commands] do
             :name         => name,
             :runtime      => runtime,
             :status       => status,
+            :network      => show[:network],
             :last_episode => parse_episode(last_episode, clock),
             :next_episode => parse_episode(next_episode, clock)
         })
