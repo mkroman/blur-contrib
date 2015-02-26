@@ -48,20 +48,26 @@ Script :tvdb_lookup, uses: %w{http}, includes: [Commands] do
       case cmd
       # List Shows
       when 'list' 
-       list = ""
 
        # use the remaining arguments as a filter if given
        shows = arguments.empty? ? cache[:shows] : search_cache(arguments.join)
 
-       shows.each do |show|
-         list += " \x02#{show[:name]}\x02 \x0310(\x0F#{show[:id]}\x0310)\x0F"
+       # group lines by 8 shows each
+       groups = shows.each_slice(8).to_a
 
-         unless show.equal? shows.last 
-           list += "\x0310 -\x0F"
+       groups.each do |group|
+         line = ""
+
+         group.each do |show|
+           line += " \x02#{show[:name]}\x02 \x0310(\x0F#{show[:id]}\x0310)\x0F"
+
+           unless show.equal? group.last 
+             line += "\x0310 -\x0F"
+           end
          end
-       end
 
-       channel.say format "Shows:\x0F#{list}"
+         channel.say format "Shows:\x0F#{line}"
+       end
 
        next
 
