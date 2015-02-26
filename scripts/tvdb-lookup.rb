@@ -49,101 +49,96 @@ Script :tvdb_lookup, uses: %w{http}, includes: [Commands] do
       # List Shows
       when 'list' 
 
-       # use the remaining arguments as a filter if given
-       shows = arguments.empty? ? cache[:shows] : search_cache(arguments.join)
+        # use the remaining arguments as a filter if given
+        shows = arguments.empty? ? cache[:shows] : search_cache(arguments.join)
 
-       # group lines by 8 shows each
-       groups = shows.each_slice(8).to_a
+        # group lines by 8 shows each
+        groups = shows.each_slice 8
 
-       groups.each do |group|
-         line = ""
+        groups.each do |group|
+          line = ""
 
-         group.each do |show|
-           line += " \x02#{show[:name]}\x02 \x0310(\x0F#{show[:id]}\x0310)\x0F"
+          group.each do |show|
+            line += " \x02#{show[:name]}\x02 \x0310(\x0F#{show[:id]}\x0310)\x0F"
 
-           unless show.equal? group.last 
-             line += "\x0310 -\x0F"
-           end
-         end
+            unless show.equal? group.last 
+              line += "\x0310 -\x0F"
+            end
+          end
 
-         channel.say format "Shows:\x0F#{line}"
-       end
+          channel.say format "Shows:\x0F#{line}"
+        end
 
-       next
+        next
 
       # Add Alias for show
       when 'add'
-       if arguments.length < 2 or not /^\d+$/.match arguments.first
-         next channel.say format "Usage:\x0F .next add <id> <alias>"
-       end
+        if arguments.length < 2 or not /^\d+$/.match arguments.first
+          next channel.say format "Usage:\x0F .next add <id> <alias>"
+        end
 
-       # first argument is the id, just shift it out of the array
-       id = arguments.shift
+        # first argument is the id, just shift it out of the array
+        id = arguments.shift
  
-       # alias is the remaining arguments
-       show_alias = arguments.join
+        # alias is the remaining arguments
+        show_alias = arguments.join
 
-       # if the show is cached, just alter the entry
-       if exists? id
-         cache[:shows].map! {|s| 
-           if s[:id] == id
-             s[:alias] = show_alias
-           end
-           s
-         }
+        # if the show is cached, just alter the entry
+        if show = show_by_id(id)
+          show[:alias] = show_alias
 
-         show = show_by_id id
-
-         channel.say format "Added:\x0F \"\x02#{show[:name]}\x0F\" with alias \"\x02#{show[:alias]}\x0F\""
+          channel.say format "Added:\x0F \"\x02#{show[:name]}\x0F\" with alias \"\x02#{show[:alias]}\x0F\""
          
-       # otherwise look it up
-       else
+        # otherwise look it up
+        else
 
-         context = http.get SeriesURI % id
+          context = http.get SeriesURI % id
 
-         context.success do
-           begin
-             xml = Nokogiri::XML(context.response.to_s)
+          context.success do
+            begin
+              xml = Nokogiri::XML(context.response.to_s)
 
-             show = parse_show(xml)
+              show = parse_show(xml)
 
-             if show
-               show[:alias] = show_alias 
+              if show
+                show[:alias] = show_alias 
 
-               cache[:shows] << show
+                cache[:shows] << show
 
-               channel.say format "Added:\x0F \"\x02#{show[:name]}\x0F\" with alias \"\x02#{show[:alias]}\x0F\""
-             else
-               channel.say format "No show with that ID"
-             end
+                channel.say format "Added:\x0F \"\x02#{show[:name]}\x0F\" with alias \"\x02#{show[:alias]}\x0F\""
+              else
+                channel.say format "No show with that ID"
+              end
 
-           rescue Exception => e
-             p "#{e.message} - #{e.class.to_s}"
-             p e.backtrace
+            rescue Exception => e
+              p "#{e.message} - #{e.class.to_s}"
+              p e.backtrace
 
-             channel.say format 'An error occured in the lookup'
-           end
-         end
+              channel.say format 'An error occured in the lookup'
+            end
+          end
 
-         context.error do
-           channel.say format 'An error occured in the lookup'
-         end
-       end
+          context.error do
+            channel.say format 'An error occured in the lookup'
+          end
+        end
 
-       next
-      when 'remove' # remove show from the list
-       if arguments.empty? or not /^\d+$/.match arguments.first
-         next channel.say format "Usage:\x0F .next remove <id>"
-       end
+        next
 
-       show = show_by_id arguments.first
+      # remove show from the list
+      when 'remove' 
+        if arguments.empty? or not /^\d+$/.match arguments.first
+          next channel.say format "Usage:\x0F .next remove <id>"
+        end
 
-       if show
-         cache[:shows].delete show
-         channel.say format "#{show[:name]}\x0F Removed from cache"
-       end
+        show = show_by_id arguments.first
 
-       next
+        if show
+          cache[:shows].delete show
+          channel.say format "#{show[:name]}\x0F Removed from cache"
+        end
+
+        next
       end
 
     end
