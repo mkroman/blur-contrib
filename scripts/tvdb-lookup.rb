@@ -54,8 +54,6 @@ Script :tvdb_lookup, uses: %w{http}, includes: [Commands] do
        shows = arguments.empty? ? cache[:shows] : search_cache(arguments.join)
 
        shows.each do |show|
-         p show
-
          list += " \x02#{show[:id]}\x0F: #{show[:name]}"
 
          unless show.equal? shows.last 
@@ -312,7 +310,7 @@ Script :tvdb_lookup, uses: %w{http}, includes: [Commands] do
     id   = series.css('id').first.text
     network = series.css('Network').first.text
 
-    return {:id => id, :name => name, :network => network, :alias => ''}
+    {:id => id, :name => name, :network => network, :alias => ''}
   end
 
   def parse_episode episode, clock
