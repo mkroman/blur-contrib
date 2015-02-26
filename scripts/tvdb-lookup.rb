@@ -54,7 +54,7 @@ Script :tvdb_lookup, uses: %w{http}, includes: [Commands] do
        shows = arguments.empty? ? cache[:shows] : search_cache(arguments.join)
 
        shows.each do |show|
-         list += " \x02#{show[:id]}\x0F: #{show[:name]}"
+         list += " \x02#{show[:name]}\x02 \x0310(\x0F#{show[:id]}\x0310)\x0F"
 
          unless show.equal? shows.last 
            list += "\x0310 -\x0F"
@@ -75,36 +75,53 @@ Script :tvdb_lookup, uses: %w{http}, includes: [Commands] do
        id = arguments.shift
  
        # alias is the remaining arguments
-       name = arguments.join
+       show_alias = arguments.join
 
-       context = http.get SeriesURI % id
-
-       context.success do
-         begin
-           xml = Nokogiri::XML(context.response.to_s)
-
-           show = parse_show(xml)
-
-           if show
-             show[:alias] = name
-
-             cache[:shows] << show
-
-             channel.say format "Added:\x0F \"\x02#{show[:name]}\x0F\" with alias \"\x02#{name}\x0F\""
-           else
-             channel.say format "No show with that ID"
+       # if the show is cached, just alter the entry
+       if exists? id
+         cache[:shows].map! {|s| 
+           if s[:id] == id
+             s[:alias] = show_alias
            end
+           s
+         }
 
-         rescue Exception => e
-           p "#{e.message} - #{e.class.to_s}"
-           p e.backtrace
+         show = show_by_id id
 
+         channel.say format "Added:\x0F \"\x02#{show[:name]}\x0F\" with alias \"\x02#{show[:alias]}\x0F\""
+         
+       # otherwise look it up
+       else
+
+         context = http.get SeriesURI % id
+
+         context.success do
+           begin
+             xml = Nokogiri::XML(context.response.to_s)
+
+             show = parse_show(xml)
+
+             if show
+               show[:alias] = show_alias 
+
+               cache[:shows] << show
+
+               channel.say format "Added:\x0F \"\x02#{show[:name]}\x0F\" with alias \"\x02#{show[:alias]}\x0F\""
+             else
+               channel.say format "No show with that ID"
+             end
+
+           rescue Exception => e
+             p "#{e.message} - #{e.class.to_s}"
+             p e.backtrace
+
+             channel.say format 'An error occured in the lookup'
+           end
+         end
+
+         context.error do
            channel.say format 'An error occured in the lookup'
          end
-       end
-
-       context.error do
-         channel.say format 'An error occured in the lookup'
        end
 
        next
@@ -167,7 +184,7 @@ Script :tvdb_lookup, uses: %w{http}, includes: [Commands] do
   end
 
   def show_by_id id
-    cache[:shows].find {|s| s[:id] == id}
+    cache[:shows].find {|s| s[:id] == id }
   end
 
   def exists? id
