@@ -7,7 +7,7 @@ require 'nokogiri'
 
 Script :tvdb_lookup, uses: %w{http}, includes: [Commands] do
   Author "Ole Bergmann <ole@ole.im>"
-  Version "0.3"
+  Version "0.4"
   Description "Provides a method to search TVDB for a Show's previous and next episodes"
 
   # Script constants.
@@ -23,7 +23,11 @@ Script :tvdb_lookup, uses: %w{http}, includes: [Commands] do
   MirrorPath  = 'http://thetvdb.com/'
 
   SearchURI   = "#{MirrorPath}api/GetSeries.php?seriesname=%s"
+  SeriesURI   = "#{MirrorPath}api/#{APIKey}/series/%s/#{APILanguage}.xml"
   LookupURI   = "#{MirrorPath}api/#{APIKey}/series/%s/all/#{APILanguage}.xml"
+
+  # Toggles whether commands can be used to modify the cached list of shows
+  EnableEdit  = true
 
   def loaded
     # Initialize the shows array for caching search results
@@ -32,7 +36,95 @@ Script :tvdb_lookup, uses: %w{http}, includes: [Commands] do
 
   command %w{next episode tvnext series} do |user, channel, args|
     unless args
-      return channel.say format "Usage:\x0F .next <query>"
+      next channel.say format "Usage:\x0F .next <query>"
+    end
+
+    if EnableEdit
+
+      arguments = args.split
+
+      cmd = arguments.shift
+
+      case cmd
+      # List Shows
+      when 'list' 
+       list = ""
+
+       # use the remaining arguments as a filter if given
+       shows = arguments.empty? ? cache[:shows] : search_cache(arguments.join)
+
+       shows.each do |show|
+         p show
+
+         list += " \x02#{show[:id]}\x0F: #{show[:name]}"
+
+         unless show.equal? shows.last 
+           list += "\x0310 -\x0F"
+         end
+       end
+
+       channel.say format "Shows:\x0F#{list}"
+
+       next
+
+      # Add Alias for show
+      when 'add'
+       if arguments.length < 2 or not /^\d+$/.match arguments.first
+         next channel.say format "Usage:\x0F .next add <id> <alias>"
+       end
+
+       # first argument is the id, just shift it out of the array
+       id = arguments.shift
+ 
+       # alias is the remaining arguments
+       name = arguments.join
+
+       context = http.get SeriesURI % id
+
+       context.success do
+         begin
+           xml = Nokogiri::XML(context.response.to_s)
+
+           show = parse_show(xml)
+
+           if show
+             show[:alias] = name
+
+             cache[:shows] << show
+
+             channel.say format "Added:\x0F \"\x02#{show[:name]}\x0F\" with alias \"\x02#{name}\x0F\""
+           else
+             channel.say format "No show with that ID"
+           end
+
+         rescue Exception => e
+           p "#{e.message} - #{e.class.to_s}"
+           p e.backtrace
+
+           channel.say format 'An error occured in the lookup'
+         end
+       end
+
+       context.error do
+         channel.say format 'An error occured in the lookup'
+       end
+
+       next
+      when 'remove' # remove show from the list
+       if arguments.empty? or not /^\d+$/.match arguments.first
+         next channel.say format "Usage:\x0F .next remove <id>"
+       end
+
+       show = show_by_id arguments.first
+
+       if show
+         cache[:shows].delete show
+         channel.say format "#{show[:name]}\x0F Removed from cache"
+       end
+
+       next
+      end
+
     end
 
     search args do |result|
@@ -73,21 +165,25 @@ Script :tvdb_lookup, uses: %w{http}, includes: [Commands] do
   end
   
   def search_cache query
-    cache[:shows].find {|s| s[:name].downcase.include? query.downcase }
+    cache[:shows].select {|s| s[:name].downcase.include? query.downcase or s[:alias].downcase.include? query.downcase }
+  end
+
+  def show_by_id id
+    cache[:shows].find {|s| s[:id] == id}
   end
 
   def exists? id
-    cache[:shows].find {|s| s[:id] == id}
+   show_by_id id
   end
   
   def search query
 
-    show = search_cache query
+    shows = search_cache query
 
     # if we found the show in the cache, we just yield that here
-    if show
+    if shows.any?
 
-      yield show
+      yield shows.first
 
     # otherwise look it up on TVDBApi
     else
@@ -99,24 +195,14 @@ Script :tvdb_lookup, uses: %w{http}, includes: [Commands] do
         begin
           xml = Nokogiri::XML(context.response.to_s)
 
-          results = xml.css('Series')
+          show = parse_show(xml)
 
-          if results.any?
-
-            # get the first result in the list
-            series = results.first
-
-            # information saved for caching purposes
-            name = series.css('SeriesName').first.text
-            id   = series.css('seriesid').first.text
-            network = series.css('Network').first.text
-
-            show = {:id => id, :name => name, :network => network}
-
+          if show
+         
             # we gain nothing from caching multiple instances of the same show
             # and searching the cache might not be as reliable as searching tvdb
             # so we need to make sure the show doesnt exist in the cache
-            unless exists? id
+            unless exists? show[:id]
               # cache the result
               cache[:shows] << show
             end
@@ -165,24 +251,27 @@ Script :tvdb_lookup, uses: %w{http}, includes: [Commands] do
 
         episodes = xml.css('Data Episode')
 
-        episodes.each do |episode|
+        # Reverse through the episode list to get the newest episodes first
+        # This is due to some of the older entries in tvdb not having sufficient information
+        episodes.reverse_each do |episode|
 
             # We dont care about specials
             next if episode.css('SeasonNumber').first.text == '0'
 
             aired = airtime episode, clock
 
-            # just continue overriding while we havent got the latest episode
-            if aired and aired < now
-                last_episode = episode
-                next
-            end
-
             # no point in looking for next episode if the series have ended
             if status != 'Ended' and (not aired or aired >= now)
                 next_episode = episode
 
-                # break out of loop if we find the next episode
+                next
+            end
+
+            # just continue overriding while we havent got the last episode
+            if aired and aired < now
+                last_episode = episode
+
+                # break out of loop if we find the last episode
                 break
             end
         end
@@ -208,6 +297,22 @@ Script :tvdb_lookup, uses: %w{http}, includes: [Commands] do
     context.error do
       yield nil
     end
+  end
+
+  def parse_show xml
+    results = xml.css('Series')
+
+    return nil if not results.any?
+
+    # get the first result in the list
+    series = results.first
+
+    # information saved for caching purposes
+    name = series.css('SeriesName').first.text
+    id   = series.css('id').first.text
+    network = series.css('Network').first.text
+
+    return {:id => id, :name => name, :network => network, :alias => ''}
   end
 
   def parse_episode episode, clock
